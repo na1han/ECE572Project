@@ -26,8 +26,8 @@ void setup() {
   yServo.attach(8);  // attaches the servo on pin 8 to the servo object
   xResetAngle = 90;
   yResetAngle = 90;
-  xServo.write(xResetAngle) // Set table to flat if ball is not present
-  yServo.write(yResetAngle) // Set table to flat if ball is not present
+  xServo.write(xResetAngle); // Set table to flat if ball is not present
+  yServo.write(yResetAngle); // Set table to flat if ball is not present
 }
 
 void loop() {
@@ -46,8 +46,8 @@ void loop() {
       yServo.write(constrain(yAngle, 75, 105)); // Only allowing 15 degrees of correction for now
     }
     else {
-      xServo.write(xResetAngle) // Set table to flat if ball is not present
-      yServo.write(yResetAngle) // Set table to flat if ball is not present
+      xServo.write(xResetAngle); // Set table to flat if ball is not present
+      yServo.write(yResetAngle); // Set table to flat if ball is not present
     }
   }
 }
@@ -66,19 +66,19 @@ void serialEvent() {
     if (inChar == 'i') {              // 'i' transmission means the next byte will be the target x location
       xTarget = (int)Serial.read();
     }
-    elseif (inChar == 'j') {          // 'j' transmission means the next byte will be the target y location
+    else if (inChar == 'j') {          // 'j' transmission means the next byte will be the target y location
       yTarget = (int)Serial.read();
     }
-    elseif (inChar == 'x') {          // 'x' transmission means the next byte will be the actual x location
+    else if (inChar == 'x') {          // 'x' transmission means the next byte will be the actual x location
       xLoc = (int)Serial.read();
     }
-    elseif (inChar == 'y') {          // 'y' transmission means the next byte will be the target y location
+    else if (inChar == 'y') {          // 'y' transmission means the next byte will be the target y location
       yLoc = (int)Serial.read();
     }
-    elseif (inChar == 'b') {          // 'b' transmission means the next byte will be a 1 or 0 whether the ball is there or not
+    else if (inChar == 'b') {          // 'b' transmission means the next byte will be a 1 or 0 whether the ball is there or not
       isBallOnTable = (int)Serial.read();
     }
-    elseif (inChar == '\n') {             // '\n' means that all the data has been loaded and control can begin
+    else if (inChar == '\n') {             // '\n' means that all the data has been loaded and control can begin
       stringComplete = true;
     } 
   }
