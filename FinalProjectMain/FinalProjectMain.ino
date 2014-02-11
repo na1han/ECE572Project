@@ -1,6 +1,10 @@
-
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
+int xTarget;
+int yTarget;
+int xLoc;
+int yLoc;
+
 
 void setup() {
   // initialize serial:
@@ -29,11 +33,20 @@ void serialEvent() {
   while (Serial.available()) {
     // get the new byte:
     char inChar = (char)Serial.read(); 
-    // add it to the inputString:
-    inputString += inChar;
-    // if the incoming character is a newline, set a flag
-    // so the main loop can do something about it:
-    if (inChar == '\n') {
+  
+    if (inChar == 'i') {              // 'i' transmission means the next byte will be the target x location
+      xTarget = (int)Serial.read();
+    }
+    elseif (inChar == 'j') {          // 'j' transmission means the next byte will be the target y location
+      yTarget = (int)Serial.read();
+    }
+    elseif (inChar == 'x') {          // 'x' transmission means the next byte will be the actual x location
+      xLoc = (int)Serial.read();
+    }
+    elseif (inChar == 'y') {          // 'y' transmission means the next byte will be the target y location
+      yLoc = (int)Serial.read();
+    }
+    if (inChar == '\n') {             // '\n' means that all the data has been loaded and control can begin
       stringComplete = true;
     } 
   }
