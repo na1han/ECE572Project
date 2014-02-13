@@ -13,6 +13,11 @@ int yResetAngle;
 int isBallOnTable                // 1 if ball is present 0 if not
 Servo xServo;  // create servo object to control the rotation around the x axis
 Servo yServo;  // create servo object to control the rotation around the x axis
+double pGain;
+double iGain;
+double dGain;
+double dBuffer[] = {0 0 0 0};
+double iAccum = 0;
 
 void setup() {
   // initialize serial:
@@ -41,6 +46,14 @@ void loop() {
     xServo.write(xResetAngle); // Set table to flat if ball is not present
     yServo.write(yResetAngle); // Set table to flat if ball is not present
   }
+}
+
+int PID(double error) {
+  double pWeight = error*pGain;
+  iAccum = iAccum + error/10;
+  double iWeight = iAccum*iGain;
+  double dWeight = rollingAverage(dBuffer, 4, error - dBuffer(2))*dGain;
+  return (int)round(pWeight + iWeight + dWeight)
 }
 
 void serialEvent() {
