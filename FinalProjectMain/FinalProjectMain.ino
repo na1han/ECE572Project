@@ -4,8 +4,6 @@ int xTarget;                     // Target location for the ball from the comput
 int yTarget;                    
 int xLoc;                        // Actual loction of the ball from the computer
 int yLoc;
-int xCorrection;                 // PID angle correction
-int yCorrection;
 int xAngle;                      // Current table angle
 int yAngle;
 int xResetAngle;                 // Allow for reset angle to be something other than 90
@@ -13,9 +11,9 @@ int yResetAngle;
 int isBallOnTable                // 1 if ball is present 0 if not
 Servo xServo;  // create servo object to control the rotation around the x axis
 Servo yServo;  // create servo object to control the rotation around the x axis
-double pGain;
-double iGain;
-double dGain;
+double pGain = 1;
+double iGain = .01;
+double dGain = 1;
 double dBuffer[] = {0 0 0 0};
 double iAccum = 0;
 
@@ -34,11 +32,8 @@ void setup() {
 
 void loop() {
   if(isBallOnTable) {
-  
-    //TODO PID corrections
-    
-    xAngle = xAngle + xCorrection;
-    yAngle = yAngle + yCorrection;
+    xAngle = xAngle + PID(xLoc - xTarget);
+    yAngle = yAngle + PID(yLoc - yTarget);
     xServo.write(constrain(xAngle, 75, 105)); // Only allowing 15 degrees of correction for now 
     yServo.write(constrain(yAngle, 75, 105)); // Only allowing 15 degrees of correction for now
   }
