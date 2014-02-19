@@ -12,22 +12,26 @@ int yResetAngle;
 int isBallOnTable;                // 1 if ball is present 0 if not
 Servo xServo;  // create servo object to control the rotation around the x axis
 Servo yServo;  // create servo object to control the rotation around the x axis
-double pGain = 1;
-double iGain = .01;
-double dGain = 1;
-double dBuffer[] = {0, 0, 0, 0};
-double iAccum = 0;
+float pGain = 1;
+float iGain = .01;
+float dGain = 1;
+float dBuffer[] = {0, 0, 0, 0};
+float iAccum = 0;
+char temp;
+
 
 void setup() {
   // initialize serial:
   Serial.begin(115200);
   xServo.attach(9);  // attaches the servo on pin 9 to the servo object
   yServo.attach(8);  // attaches the servo on pin 8 to the servo object
-  xAngle = 90; 
-  yAngle = 90;
-  StartUp();
   xResetAngle = 90;
-  yResetAngle = 90;
+  yResetAngle = 85;
+  xAngle = xResetAngle; 
+  yAngle = yResetAngle;
+  xServo.write(xResetAngle); // Set table to flat if ball is not present
+  yServo.write(yResetAngle); // Set table to flat if ball is not present
+  //StartUp();
   xServo.write(xResetAngle); // Set table to flat if ball is not present
   yServo.write(yResetAngle); // Set table to flat if ball is not present
   isBallOnTable = 0;
@@ -35,13 +39,27 @@ void setup() {
 
 void loop() {
   while (Serial.available()) {
-    // transmit serial data "xTarget,yTarget,xLoc,yLoc,isBallOnTable"
+    
+    // transmit serial data "xTarget,yTarget,xLoc,yLoc,isBallOnTable,"
     xTarget = Serial.parseInt();
     yTarget = Serial.parseInt();
     xLoc = Serial.parseInt();
     yLoc = Serial.parseInt();
     isBallOnTable = Serial.parseInt();
-    
+    temp = Serial.read();
+    //Echo recieved data
+    Serial.print(xTarget);
+    Serial.print(",");
+    Serial.print(yTarget);
+    Serial.print(",");
+    Serial.print(xLoc);
+    Serial.print(",");
+    Serial.print(yLoc);
+    Serial.print(",");
+    Serial.println(isBallOnTable);
+
+
+    //run control structure if the ball is present
     if(isBallOnTable) {
       xAngle = xAngle + PID(xLoc - xTarget);
       yAngle = yAngle + PID(yLoc - yTarget);
@@ -57,10 +75,10 @@ void loop() {
   }
 }
 
-int PID(double error) {
-  double pWeight = error*pGain;
+int PID(float error) {
+  float pWeight = error*pGain;
   iAccum = iAccum + error/10;
-  double iWeight = iAccum*iGain;
+  float iWeight = iAccum*iGain;
   for(int i = 0; i<3; i++) {
     dBuffer[i] = dBuffer[i+1];
   }
@@ -70,29 +88,42 @@ int PID(double error) {
     average = average + dBuffer[i];
   }
   average = average/4;
-  double dWeight = average*dGain;
+  float dWeight = average*dGain;
   return (int)round(pWeight + iWeight + dWeight);
 }
 
 void StartUp() {
   int t = 0;
-  for(t = 0; t < 40; t++) {
+  int pause = 5;
+  Serial.println("Start up sequence");
+  delay(2000);
+  for(t = 0; t < 35; t++) {
     xServo.write(xAngle++);
     yServo.write(yAngle++);
-    delay(10);
+    delay(pause);
   }
-  for(t = 0; t < 80; t++) {
+  for(t = 0; t < 70; t++) {
+    xServo.write(xAngle--);
+    delay(pause);
+  }
+  for(t = 0; t < 70; t++) {
+    yServo.write(yAngle--);
+    delay(pause);
+  }
+  for(t = 0; t < 70; t++) {
+    xServo.write(xAngle++);
+    delay(pause);
+  }
+  for(t = 0; t < 70; t++) {
+    yServo.write(yAngle++);
+    delay(pause);
+  }
+  for(t = 0; t < 35; t++) {
     xServo.write(xAngle--);
     yServo.write(yAngle--);
-    delay(10);
+    delay(pause);
   }
-  for(t = 0; t < 40; t++) {
-    xServo.write(xAngle++);
-    yServo.write(yAngle++);
-    delay(10);
-  }
-  xAngle = 90;
-  yAngle = 90;
+  Serial.println("Ready to run");
 }
 
 
