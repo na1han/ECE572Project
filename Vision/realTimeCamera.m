@@ -1,13 +1,17 @@
-function realTimeCamera()
+function realTimeCamera(COMM)
 % This only runs at about 6 FPS, and seems to be limited by the frame
 % acquisition speed (the getdata function).
+
+if nargin < 1
+    COMM = 'COM5';
+end
 
 % Define frame rate
 NumberFrameDisplayPerSecond=10;
 
 % Open figure
 hFigure=figure(1);
-set(hFigure,'Renderer','opengl')
+%set(hFigure,'Renderer','opengl') % This may be faster, may not be.
 
 % Camera setup:
 vid = videoinput('winvideo', 1, 'MJPG_320x240');
@@ -73,10 +77,12 @@ else
 
     % Display the centroid
     STATS=regionprops(IM,'Centroid');
-    delete(handleC)
     % This is naive, what do we do if there is no centroid detected,
     % what if there are multiple?
     if ~isempty(STATS)
+        %send data to arduino here
         handleC=plot(STATS(1).Centroid(1),STATS(1).Centroid(2),'r*');
+    else
+        %send data to arduino indicating object lost
     end
 end
