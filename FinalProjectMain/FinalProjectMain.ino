@@ -31,32 +31,27 @@ void setup() {
   yAngle = yResetAngle;
   xServo.write(xResetAngle); // Set table to flat if ball is not present
   yServo.write(yResetAngle); // Set table to flat if ball is not present
-  StartUp();
-  xServo.write(xResetAngle); // Set table to flat if ball is not present
-  yServo.write(yResetAngle); // Set table to flat if ball is not present
+  //StartUp();
+  //xServo.write(xResetAngle); // Set table to flat if ball is not present
+  //yServo.write(yResetAngle); // Set table to flat if ball is not present
   isBallOnTable = 0;
 }
 
 void loop() {
   while (Serial.available()) {
     
-    // transmit serial data "xTarget,yTarget,xLoc,yLoc,isBallOnTable,"
-    xTarget = Serial.parseInt();
-    yTarget = Serial.parseInt();
-    xLoc = Serial.parseInt();
-    yLoc = Serial.parseInt();
-    isBallOnTable = Serial.parseInt();
-    temp = Serial.read();
+    // transmit serial data "xTarget yTarget xLoc yLoc isBallOnTable"
+    xTarget = ReadInt16();
+    yTarget = ReadInt16();
+    xLoc = ReadInt16();
+    yLoc = ReadInt16();
+    isBallOnTable = ReadInt16();
     //Echo recieved data
-    Serial.print(xTarget);
-    Serial.print(",");
-    Serial.print(yTarget);
-    Serial.print(",");
-    Serial.print(xLoc);
-    Serial.print(",");
-    Serial.print(yLoc);
-    Serial.print(",");
-    Serial.println(isBallOnTable);
+    WriteInt16(xTarget);
+    WriteInt16(yTarget);
+    WriteInt16(xLoc);
+    WriteInt16(yLoc);
+    WriteInt16(isBallOnTable);
 
 
     //run control structure if the ball is present
@@ -126,4 +121,16 @@ void StartUp() {
   Serial.println("Ready to run");
 }
 
+int ReadInt16() {
+  byte in;
+  while(Serial.available() < 2);
+  in = Serial.read() << 8;
+  in += Serial.read() & 0x00FF;
+  return in;
+}
+
+void WriteInt16(int data) {
+  Serial.write(data >> 8);
+  Serial.write(data & 0x00FF);
+}
 
