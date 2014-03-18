@@ -38,8 +38,6 @@ void setup() {
 }
 
 void loop() {
-  while (Serial.available()) {
-    
     // transmit serial data "xTarget yTarget xLoc yLoc isBallOnTable"
     xTarget = ReadInt16();
     yTarget = ReadInt16();
@@ -58,16 +56,15 @@ void loop() {
     if(isBallOnTable) {
       xAngle = xAngle + PID(xLoc - xTarget);
       yAngle = yAngle + PID(yLoc - yTarget);
-      xServo.write(constrain(xAngle, 55, 125)); // Only allowing 15 degrees of correction for now 
-      yServo.write(constrain(yAngle, 55, 1125)); // Only allowing 15 degrees of correction for now
+      //xServo.write(constrain(xAngle, 55, 125)); // Only allowing 15 degrees of correction for now 
+      //yServo.write(constrain(yAngle, 55, 1125)); // Only allowing 15 degrees of correction for now
     }
     else {
-      xServo.write(xResetAngle); // Set table to flat if ball is not present
-      yServo.write(yResetAngle); // Set table to flat if ball is not present
+      //xServo.write(xResetAngle); // Set table to flat if ball is not present
+      //yServo.write(yResetAngle); // Set table to flat if ball is not present
       xAngle = xResetAngle;
       yAngle = yResetAngle;
     }
-  }
 }
 
 int PID(float error) {
@@ -122,7 +119,7 @@ void StartUp() {
 }
 
 int ReadInt16() {
-  byte in;
+  int in;
   while(Serial.available() < 2);
   in = Serial.read() << 8;
   in += Serial.read() & 0x00FF;
@@ -130,7 +127,9 @@ int ReadInt16() {
 }
 
 void WriteInt16(int data) {
-  Serial.write(data >> 8);
-  Serial.write(data & 0x00FF);
+  Serial.flush();
+  Serial.write((byte)(data >> 8));
+  Serial.flush();
+  Serial.write((byte)(data & 0x00FF));
 }
 
