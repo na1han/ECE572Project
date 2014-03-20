@@ -39,29 +39,29 @@ void setup() {
 
 void loop() {
     // transmit serial data "xTarget yTarget xLoc yLoc isBallOnTable"
-    xTarget = ReadInt16();
-    yTarget = ReadInt16();
-    xLoc = ReadInt16();
-    yLoc = ReadInt16();
-    isBallOnTable = ReadInt16();
+    xTarget = readInt();
+    yTarget = readInt();
+    xLoc = readInt();
+    yLoc = readInt();
+    isBallOnTable = readInt();
     //Echo recieved data
-    WriteInt16(xTarget);
-    WriteInt16(yTarget);
-    WriteInt16(xLoc);
-    WriteInt16(yLoc);
-    WriteInt16(isBallOnTable);
+    writeInt(xTarget);
+    writeInt(yTarget);
+    writeInt(xLoc);
+    writeInt(yLoc);
+    writeInt(isBallOnTable);
 
 
     //run control structure if the ball is present
     if(isBallOnTable) {
       xAngle = xAngle + PID(xLoc - xTarget);
       yAngle = yAngle + PID(yLoc - yTarget);
-      //xServo.write(constrain(xAngle, 55, 125)); // Only allowing 15 degrees of correction for now 
-      //yServo.write(constrain(yAngle, 55, 1125)); // Only allowing 15 degrees of correction for now
+      xServo.write(constrain(xAngle, 55, 125)); // Only allowing 15 degrees of correction for now 
+      yServo.write(constrain(yAngle, 55, 1125)); // Only allowing 15 degrees of correction for now
     }
     else {
-      //xServo.write(xResetAngle); // Set table to flat if ball is not present
-      //yServo.write(yResetAngle); // Set table to flat if ball is not present
+      xServo.write(xResetAngle); // Set table to flat if ball is not present
+      yServo.write(yResetAngle); // Set table to flat if ball is not present
       xAngle = xResetAngle;
       yAngle = yResetAngle;
     }
@@ -118,18 +118,19 @@ void StartUp() {
   Serial.println("Ready to run");
 }
 
-int ReadInt16() {
-  int in;
-  while(Serial.available() < 2);
-  in = Serial.read() << 8;
-  in += Serial.read() & 0x00FF;
-  return in;
+int readInt()
+{
+  while (Serial.available() < 2){}
+  char buf[] = {0,0};
+  Serial.readBytes(buf,2);
+  return word(buf[1],buf[0]); 
 }
 
-void WriteInt16(int data) {
-  Serial.flush();
-  Serial.write((byte)(data >> 8));
-  Serial.flush();
-  Serial.write((byte)(data & 0x00FF));
+void writeInt(int data)
+{
+    // Write low, then high byte
+    Serial.flush();
+    Serial.write(lowByte(data));
+    Serial.write(highByte(data));
 }
 
