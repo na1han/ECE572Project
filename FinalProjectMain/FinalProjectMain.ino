@@ -1,6 +1,12 @@
 #include <Average.h>
 #include <Servo.h> 
+#include "LedControl.h"
 
+/***** These pin numbers will probably not work with your hardware *****
+pin 12 is connected to the DataIn 
+pin 11 is connected to the CLK 
+pin 10 is connected to LOAD  */ 
+LedControl lc=LedControl(12,11,10,2);
 int xTarget;                     // Target location for the ball from the computer
 int yTarget;                    
 int xLoc;                        // Actual loction of the ball from the computer
@@ -9,15 +15,18 @@ int xAngle;                      // Current table angle
 int yAngle;
 int xResetAngle;                 // Allow for reset angle to be something other than 90
 int yResetAngle;  
-int isBallOnTable;                // 1 if ball is present 0 if not
+int isBallOnTable = 1;                // 1 if ball is present 0 if not
 Servo xServo;  // create servo object to control the rotation around the x axis
 Servo yServo;  // create servo object to control the rotation around the x axis
-float pGain = 1;
+float pGain = .01;
 float iGain = .01;
 float dGain = 1;
 float dBuffer[] = {0, 0, 0, 0};
 float iAccum = 0;
-char temp;
+word data = 0;
+int led = 13;
+int dataPiece = 0;
+int BoolRX = 0;
 
 
 void setup() {
@@ -31,33 +40,29 @@ void setup() {
   yAngle = yResetAngle;
   xServo.write(xResetAngle); // Set table to flat if ball is not present
   yServo.write(yResetAngle); // Set table to flat if ball is not present
-  //StartUp();
-  //xServo.write(xResetAngle); // Set table to flat if ball is not present
-  //yServo.write(yResetAngle); // Set table to flat if ball is not present
   isBallOnTable = 0;
+  
+  int devices=lc.getDeviceCount();
+  for(int address=0;address<devices;address++) {
+    /*The MAX72XX is in power-saving mode on startup*/
+    lc.shutdown(address,false);
+    /* Set the brightness to a medium values */
+    lc.setIntensity(address,6);
+    /* and clear the display */
+    lc.clearDisplay(address);
+  }
 }
 
 void loop() {
-    // transmit serial data "xTarget yTarget xLoc yLoc isBallOnTable"
-    xTarget = readInt();
-    yTarget = readInt();
-    xLoc = readInt();
-    yLoc = readInt();
-    isBallOnTable = readInt();
-    //Echo recieved data
-    writeInt(xTarget);
-    writeInt(yTarget);
-    writeInt(xLoc);
-    writeInt(yLoc);
-    writeInt(isBallOnTable);
-
-
+    //writeDisplay();
     //run control structure if the ball is present
     if(isBallOnTable) {
-      xAngle = xAngle + PID(xLoc - xTarget);
-      yAngle = yAngle + PID(yLoc - yTarget);
-      xServo.write(constrain(xAngle, 55, 125)); // Only allowing 15 degrees of correction for now 
-      yServo.write(constrain(yAngle, 55, 1125)); // Only allowing 15 degrees of correction for now
+      xAngle = constrain(xAngle - PID(xLoc - xTarget), 65, 115);
+      yAngle = constrain(yAngle + PID(yLoc - yTarget), 65, 115);
+      //xAngle = constrain(xAngle - (xLoc - xTarget), 65, 115);
+      //yAngle = constrain(yAngle + (yLoc - yTarget), 65, 115);
+      xServo.write(xAngle); // Only allowing 15 degrees of correction for now 
+      yServo.write(yAngle); // Only allowing 15 degrees of correction for now
     }
     else {
       xServo.write(xResetAngle); // Set table to flat if ball is not present
@@ -65,11 +70,12 @@ void loop() {
       xAngle = xResetAngle;
       yAngle = yResetAngle;
     }
+    delay(10);
 }
 
 int PID(float error) {
   float pWeight = error*pGain;
-  iAccum = constrain(iAccum + error/10, -20, 20);
+  iAccum = constrain(iAccum + error, -20, 20);
   float iWeight = iAccum*iGain;
   for(int i = 0; i<3; i++) {
     dBuffer[i] = dBuffer[i+1];
@@ -81,56 +87,73 @@ int PID(float error) {
   }
   average = average/4;
   float dWeight = average*dGain;
-  return (int)round(pWeight + iWeight + dWeight);
+  return (int)round(pWeight);//(int)round(pWeight + iWeight + dWeight);
 }
 
-void StartUp() {
-  int t = 0;
-  int pause = 5;
-  Serial.println("Start up sequence");
-  delay(2000);
-  for(t = 0; t < 35; t++) {
-    xServo.write(xAngle++);
-    yServo.write(yAngle++);
-    delay(pause);
-  }
-  for(t = 0; t < 70; t++) {
-    xServo.write(xAngle--);
-    delay(pause);
-  }
-  for(t = 0; t < 70; t++) {
-    yServo.write(yAngle--);
-    delay(pause);
-  }
-  for(t = 0; t < 70; t++) {
-    xServo.write(xAngle++);
-    delay(pause);
-  }
-  for(t = 0; t < 70; t++) {
-    yServo.write(yAngle++);
-    delay(pause);
-  }
-  for(t = 0; t < 35; t++) {
-    xServo.write(xAngle--);
-    yServo.write(yAngle--);
-    delay(pause);
-  }
-  Serial.println("Ready to run");
-}
-
-int readInt()
+void serialEvent()
 {
-  while (Serial.available() < 2){}
-  char buf[] = {0,0};
-  Serial.readBytes(buf,2);
-  return word(buf[1],buf[0]); 
+  if (Serial.available())
+  {
+    char buf[] = {0,0};
+    Serial.readBytes(buf,2);
+    data =  word(buf[1],buf[0]);
+    if (data == 5555)
+    {
+      dataPiece = 0;
+    }
+    if (dataPiece == 1)
+      xTarget = data;
+    if (dataPiece == 2)
+      yTarget = data;
+    if (dataPiece == 3)
+      xLoc = data;
+    if (dataPiece == 4)
+      yLoc = data;
+    if (dataPiece == 5)
+      isBallOnTable = data;
+      
+    dataPiece = dataPiece+1;
+    writeInt(xTarget);
+  }
+  
 }
 
 void writeInt(int data)
 {
     // Write low, then high byte
-    Serial.flush();
-    Serial.write(lowByte(data));
-    Serial.write(highByte(data));
+    if(BoolRX)
+    {
+      Serial.write(lowByte(data));
+      Serial.write(highByte(data));
+    }
 }
 
+void writeDisplay()
+{
+  lc.clearDisplay(0);
+  lc.clearDisplay(1);
+  writeNumber(1,7,xLoc);
+  writeNumber(1,3,yLoc);
+  writeNumber(0,7,xTarget);
+  writeNumber(0,3,yTarget);
+}
+
+void writeNumber(int board, int loc, int x)
+{
+  int ones;
+  int tens;
+  int hundreds;
+  int thousands;
+  ones = x%10;
+  x = x/10;
+  tens = x%10;
+  x = x/10;
+  hundreds = x%10;
+  x = x/10;
+  thousands = x;
+  lc.setChar(board,loc,thousands,false);
+  lc.setChar(board,loc-1,hundreds,false);
+  lc.setChar(board,loc-2,tens,false);
+  lc.setChar(board,loc-3,ones,false);
+}
+  
