@@ -1,28 +1,33 @@
-#include <Average.h>
-#include <Servo.h> 
+#include <Servo.h>
+#include <PID_v1.h>
 
-int xTarget;                     // Target location for the ball from the computer
-int yTarget;                    
-int xLoc;                        // Actual loction of the ball from the computer
-int yLoc;
-int xAngle;                      // Current table angle
-int yAngle;
+
 int xResetAngle;                 // Allow for reset angle to be something other than 90
 int yResetAngle;  
 int isBallOnTable = 1;                // 1 if ball is present 0 if not
 Servo xServo;  // create servo object to control the rotation around the x axis
 Servo yServo;  // create servo object to control the rotation around the x axis
-float pGain = .1;
-float iGain = .01;
-float dGain = 1;
-float dBuffer[] = {0, 0, 0, 0};
-float iAccum = 0;
+
+double previousError = 0;
+double iAccum = 0;
 word data = 0;
 int led = 13;
 int dataPiece = 0;
-int BoolRX = 0;
+int BoolRX = 1;
 int BoolNewData = 0;
-int maxAngle = 15;
+int maxAngle = 20;
+double xTarget;                     // Target location for the ball from the computer
+double yTarget;                    
+double xLoc;                        // Actual loction of the ball from the computer
+double yLoc;
+double xAngle;                      // Current table angle
+double yAngle;
+double pGain = .2;
+double iGain = 0;
+double dGain = 0;
+
+PID xPID(&xLoc, &xAngle, &xTarget, pGain, iGain, dGain, DIRECT);
+PID yPID(&yLoc,&yAngle,&yTarget,pGain,iGain,dGain,DIRECT);
 
 
 void setup() {
@@ -34,9 +39,16 @@ void setup() {
   yResetAngle = 87;
   xAngle = xResetAngle; 
   yAngle = yResetAngle;
-  xServo.write(xResetAngle); // Set table to flat if ball is not present
-  yServo.write(yResetAngle); // Set table to flat if ball is not present
+  xServo.write((int)xResetAngle); // Set table to flat if ball is not present
+  yServo.write((int)yResetAngle); // Set table to flat if ball is not present
   isBallOnTable = 0;
+  
+  //turn the PID on
+  xPID.SetMode(AUTOMATIC);
+  yPID.SetMode(AUTOMATIC);
+  xPID.SetOutputLimits(-1*maxAngle,maxAngle);
+  yPID.SetOutputLimits(-1*maxAngle,maxAngle);
+  
 }
 
 void loop() {
@@ -45,35 +57,24 @@ void loop() {
     if(BoolNewData) {
       BoolNewData = 0;
       if(isBallOnTable) {
-        xAngle = constrain(xAngle - PID(xLoc - xTarget), xResetAngle-maxAngle, xResetAngle+maxAngle);
-        yAngle = constrain(yAngle + PID(yLoc - yTarget), yResetAngle-maxAngle, yResetAngle+maxAngle);
+        //xAngle = constrain(xAngle - PID(xLoc - xTarget), xResetAngle-maxAngle, xResetAngle+maxAngle);
+        //yAngle = constrain(yAngle + PID(yLoc - yTarget), yResetAngle-maxAngle, yResetAngle+maxAngle);
+        xPID.SetTunings(pGain,iGain,dGain);
+        yPID.SetTunings(pGain,iGain,dGain);
+        xPID.Compute();
+        yPID.Compute();
+        constrain(xAngle,xResetAngle-maxAngle, xResetAngle+maxAngle);
+        constrain(yAngle,yResetAngle-maxAngle, yResetAngle+maxAngle);
         xServo.write(xAngle); // Only allowing 15 degrees of correction for now 
         yServo.write(yAngle); // Only allowing 15 degrees of correction for now
       }
-      else {
-        xServo.write(xResetAngle); // Set table to flat if ball is not present
-        yServo.write(yResetAngle); // Set table to flat if ball is not present
-        xAngle = xResetAngle;
-        yAngle = yResetAngle;
-      }
+//      else {
+//        xServo.write(xResetAngle); // Set table to flat if ball is not present
+//        yServo.write(yResetAngle); // Set table to flat if ball is not present
+//        xAngle = xResetAngle;
+//        yAngle = yResetAngle;
+//      }
     }
-}
-
-int PID(float error) {
-  float pWeight = error*pGain;
-  iAccum = constrain(iAccum + error, -20, 20);
-  float iWeight = iAccum*iGain;
-  for(int i = 0; i<3; i++) {
-    dBuffer[i] = dBuffer[i+1];
-  }
-  dBuffer[3] = error;
-  int average = 0;
-  for(int i = 0; i<4; i++) {
-    average = average + dBuffer[i];
-  }
-  average = average/4;
-  float dWeight = (average-error)*dGain;
-  return (int)round(pWeight + iWeight + dWeight);
 }
 
 void serialEvent()
@@ -106,7 +107,7 @@ void serialEvent()
     }
       
     dataPiece = dataPiece+1;
-    writeInt(data);
+    //writeInt(data);
   }
   
 }
