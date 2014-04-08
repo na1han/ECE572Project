@@ -18,12 +18,13 @@ float iGain = 0;
 float dGain = 0;
 int previousError;
 float dBuffer[] = {0, 0, 0, 0};
-float iAccum = 0;
+float iWeight = 0;
 word data = 0;
 int dataPiece = 0;
 int BoolRX = 0;
 int BoolNewData = 0;
 int maxAngle = 20;
+int counter = 0;
 
 
 void setup() {
@@ -44,24 +45,27 @@ void loop() {
     if(BoolNewData) {
       BoolNewData = 0;
       if(isBallOnTable) {
-        xAngle = xAngle - PID(xLoc - xTarget);
-        yAngle = yAngle + PID(yLoc - yTarget);
-        xServo.write(constrain(xAngle, xResetAngle-maxAngle, xResetAngle+maxAngle)); // Only allowing 15 degrees of correction for now 
-        yServo.write(constrain(yAngle, yResetAngle-maxAngle, yResetAngle+maxAngle)); // Only allowing 15 degrees of correction for now
+        xAngle = constrain(xAngle - PID(xLoc - xTarget), xResetAngle-maxAngle, xResetAngle+maxAngle);
+        yAngle = constrain(yAngle + PID(yLoc - yTarget), yResetAngle-maxAngle, yResetAngle+maxAngle);
+        xServo.write(xAngle); // Only allowing 15 degrees of correction for now 
+        yServo.write(yAngle); // Only allowing 15 degrees of correction for now
       }
-//      else {
-//        xServo.write(xResetAngle); // Set table to flat if ball is not present
-//        yServo.write(yResetAngle); // Set table to flat if ball is not present
-//        xAngle = xResetAngle;
-//        yAngle = yResetAngle;
-//      }
+      else {
+        counter++;
+        if (counter > 30) {
+          counter = 0;
+          xServo.write(xResetAngle); // Set table to flat if ball is not present
+          yServo.write(yResetAngle); // Set table to flat if ball is not present
+          xAngle = xResetAngle;
+          yAngle = yResetAngle;
+        }
+      }
     }
 }
 
 int PID(int error) {
   float pWeight = error*pGain;
-  iAccum = constrain(iAccum + error, -1000, 1000);
-  float iWeight = iAccum*iGain;
+  iWeight = constrain(iWeight + error*iGain, -1000, 1000);
 //  for(int i = 0; i<3; i++) {
 //    dBuffer[i] = dBuffer[i+1];
 //  }
